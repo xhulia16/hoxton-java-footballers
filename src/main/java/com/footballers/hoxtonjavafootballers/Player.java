@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -72,8 +73,10 @@ class PlayerController {
         return playerRepo.save(player);
     }
 
-    @PatchMapping("/players/{id}")
-    public Player updatePlayer(@RequestBody Player player, @PathVariable Integer id) {
+    // changes the teamId of the players, body is just {}. (?)
+
+    @PatchMapping("/teams/{teamId}/players/{id}")
+    public Player updatePlayer(@RequestBody Player player, @PathVariable Integer teamId, @PathVariable Integer id) {
         Optional<Player> match = playerRepo.findById(id);
 
         if (match.isEmpty()) {
@@ -81,15 +84,36 @@ class PlayerController {
         }
 
         Player playerToBeUpdated = match.get();
-
-        if (playerToBeUpdated.scoreOutOfTen < player.scoreOutOfTen) {
-            playerToBeUpdated.scoreOutOfTen = player.scoreOutOfTen;
-        }
-        else{
-            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "Score should be higher than current" );}
+        playerToBeUpdated.team = teamRepo.findById(teamId).get();
 
         return playerRepo.save(playerToBeUpdated);
-    
+
+    }
+
+    @PatchMapping("/player/{id}")
+    public Player updatePlayer(@RequestBody Player player, @PathVariable Integer id) {
+        Optional<Player> match = playerRepo.findById(id);
+        if (match.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unable to find resource");
+        }
+        Player playerToBeUpdated = match.get();
+        if (playerToBeUpdated.scoreOutOfTen < player.scoreOutOfTen) {
+            playerToBeUpdated.scoreOutOfTen = player.scoreOutOfTen;
+        } else {
+            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "Score should be higher than current");
+        }
+
+        return playerRepo.save(playerToBeUpdated);
+    }
+
+    @DeleteMapping("/players/{id}")
+    public ResponseEntity<String> deletePlayer(@PathVariable Integer id) {
+        if (playerRepo.existsById(id)) {
+            playerRepo.deleteById(id);;
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }
 
@@ -97,6 +121,6 @@ interface PlayerRepository extends JpaRepository<Player, Integer> {
 
 }
 
-interface TeamRepository extends JpaRepository< Team, Integer> {
+interface TeamRepository extends JpaRepository<Team, Integer> {
 
 }
