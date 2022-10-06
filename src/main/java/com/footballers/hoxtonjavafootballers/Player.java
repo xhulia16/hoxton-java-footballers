@@ -14,10 +14,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -69,8 +71,32 @@ class PlayerController {
         player.team = teamRepo.findById(teamId).get();
         return playerRepo.save(player);
     }
+
+    @PatchMapping("/players/{id}")
+    public Player updatePlayer(@RequestBody Player player, @PathVariable Integer id) {
+        Optional<Player> match = playerRepo.findById(id);
+
+        if (match.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unable to find resource");
+        }
+
+        Player playerToBeUpdated = match.get();
+
+        if (playerToBeUpdated.scoreOutOfTen < player.scoreOutOfTen) {
+            playerToBeUpdated.scoreOutOfTen = player.scoreOutOfTen;
+        }
+        else{
+            throw new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "Score should be higher than current" );}
+
+        return playerRepo.save(playerToBeUpdated);
+    
+    }
 }
 
 interface PlayerRepository extends JpaRepository<Player, Integer> {
+
+}
+
+interface TeamRepository extends JpaRepository< Team, Integer> {
 
 }
